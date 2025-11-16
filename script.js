@@ -154,15 +154,6 @@ const api = {
                 resolve(order);
             }, 1000);
         });
-    },
-
-    // Simulate OTP sending
-    sendOTP(phone) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve('123456'); // Demo OTP
-            }, 1000);
-        });
     }
 };
 
@@ -287,14 +278,16 @@ const router = {
         });
 
         const userMenuBtn = document.getElementById('user-menu-btn');
-        if (state.currentUser) {
+        if (state.currentUser && userMenuBtn) {
             userMenuBtn.innerHTML = `<i class="fas fa-user"></i> ${
                 state.currentUser.name.split(' ')[0]
             }`;
-            document.getElementById('logout-btn').style.display = 'block';
-        } else {
+            const logoutLink = document.getElementById('logout-btn');
+            if (logoutLink) logoutLink.style.display = 'block';
+        } else if (userMenuBtn) {
             userMenuBtn.innerHTML = `<i class="fas fa-user"></i> Account`;
-            document.getElementById('logout-btn').style.display = 'none';
+            const logoutLink = document.getElementById('logout-btn');
+            if (logoutLink) logoutLink.style.display = 'none';
         }
     },
 
@@ -371,6 +364,10 @@ const views = {
     },
 
     login() {
+        // Hide OTP section if it's present in HTML (we don't use OTP anymore)
+        const otpSection = document.getElementById('otp-section');
+        if (otpSection) otpSection.style.display = 'none';
+
         document.querySelectorAll('.auth-tab').forEach((tab) => {
             tab.addEventListener('click', () => {
                 document
@@ -427,49 +424,21 @@ const views = {
                     return;
                 }
 
-                const otpSection = document.getElementById('otp-section');
-                if (otpSection) otpSection.style.display = 'block';
-
-                const otp = await api.sendOTP(phone);
-                router.showToast(`OTP sent to ${phone}`, 'info');
-
-                const verifyBtn = document.getElementById('verify-otp');
-                if (verifyBtn) {
-                    const clickHandler = async () => {
-                        const otpInputs = document.querySelectorAll('.otp-input');
-                        const enteredOTP = Array.from(otpInputs)
-                            .map((input) => input.value)
-                            .join('');
-
-                        if (enteredOTP === otp) {
-                            try {
-                                const user = await api.register({
-                                    name,
-                                    age,
-                                    phone,
-                                    email,
-                                    address,
-                                    password
-                                });
-                                state.currentUser = user;
-                                storage.saveCurrentUser(user);
-                                router.navigate('/');
-                                router.showToast(
-                                    'Registration successful!',
-                                    'success'
-                                );
-                            } catch (error) {
-                                router.showToast(error.message, 'error');
-                            }
-                        } else {
-                            router.showToast(
-                                'Invalid OTP. Please try again.',
-                                'error'
-                            );
-                        }
-                    };
-
-                    verifyBtn.onclick = clickHandler;
+                try {
+                    const user = await api.register({
+                        name,
+                        age,
+                        phone,
+                        email,
+                        address,
+                        password
+                    });
+                    state.currentUser = user;
+                    storage.saveCurrentUser(user);
+                    router.navigate('/');
+                    router.showToast('Registration successful!', 'success');
+                } catch (error) {
+                    router.showToast(error.message, 'error');
                 }
             });
         }
@@ -643,9 +612,7 @@ const views = {
                             : ''
                     }
                     <div class="product-meta">
-                        <span><i class="fas fa-box"></i> In Stock: ${
-                            product.stock
-                        }</span>
+                        <span><i class="fas fa-box"></i> In Stock: ${product.stock}</span>
                         <span><i class="fas fa-shield-alt"></i> 100% Genuine</span>
                     </div>
                     <div style="margin: 20px 0;">
@@ -2355,6 +2322,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 });
-
-
-
